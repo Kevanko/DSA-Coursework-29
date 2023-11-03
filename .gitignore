@@ -1,0 +1,8 @@
+*~
+*main
+*output
+*bin/geometry
+*.d
+*.o
+*.a
+*.vscode/
