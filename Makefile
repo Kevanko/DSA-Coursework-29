@@ -3,6 +3,8 @@ LIB_NAME = bloomfilter
 
 CFLAGS = -Wall -Wextra -Werror
 CPPFLAGS = -I src -MP -MMD
+LDFLAGS = 
+LDLIBS = -lm
 
 BIN_DIR = bin
 OBJ_DIR = obj
