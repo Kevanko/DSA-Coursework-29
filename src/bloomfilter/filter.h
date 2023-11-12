@@ -1,8 +1,15 @@
+// filter.h
 #pragma once
 
-void insert(_Bool *bitarray, int arrSize, char *s);
-_Bool lookup(_Bool *bitarray, int arrSize, char *s);
-int h4(char *s, int arrSize);
-int h3(char *s, int arrSize);
-int h2(char *s, int arrSize);
-int h1(char *s, int arrSize);
+typedef unsigned int (*HashFunction)(char *, int);
+
+struct BloomFilter;
+
+struct BloomFilter *initializeFilter(int size, int numHashFunctions);
+void freeFilter(struct BloomFilter *filter);
+_Bool lookup(struct BloomFilter *filter, char *s);
+void insert(struct BloomFilter *filter, char *s);
+
+unsigned int h1(char *s, int arrSize);
+unsigned int h2(char *s, int arrSize);
+unsigned int h3(char *s, int arrSize);

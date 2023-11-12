@@ -1,90 +1,99 @@
+// filter.c
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <math.h>
 
-#include <bloomfilter/filter.h>
+#include "bloomfilter/filter.h"
 
-#define ll long long
-
-// hash 1
-int h1(char *s, int arrSize)
+struct BloomFilter
 {
-  ll int hash = 0;
-  for (int i = 0; s[i] != '\0'; i++)
-  {
-    hash = (hash + ((int)s[i]));
-    hash = hash % arrSize;
-  }
-  return hash;
+  _Bool *bitarray;
+  int arrSize;
+  HashFunction *hashFunctions;
+  int numHashFunctions;
+};
+
+// Инициализация фильтра Блума
+struct BloomFilter *initializeFilter(int size, int numHashFunctions)
+{
+  struct BloomFilter *filter = (struct BloomFilter *)malloc(sizeof(struct BloomFilter));
+  filter->bitarray = (_Bool *)calloc(size, sizeof(_Bool));
+  filter->arrSize = size;
+  filter->numHashFunctions = numHashFunctions;
+  filter->hashFunctions = (HashFunction *)malloc(numHashFunctions * sizeof(HashFunction));
+
+  // Инициализация хэш-функций
+  if (numHashFunctions >= 1)
+    filter->hashFunctions[0] = &h1;
+  if (numHashFunctions >= 2)
+    filter->hashFunctions[1] = &h2;
+  if (numHashFunctions >= 3)
+    filter->hashFunctions[2] = &h3;
+
+  return filter;
 }
 
-// hash 2
-int h2(char *s, int arrSize)
+// Освобождение ресурсов фильтра Блума
+void freeFilter(struct BloomFilter *filter)
 {
-  ll int hash = 1;
-  for (int i = 0; s[i] != '\0'; i++)
-  {
-    hash = hash + pow(19, i) * s[i];
-    hash = hash % arrSize;
-  }
-  return hash % arrSize;
-}
-
-// hash 3
-int h3(char *s, int arrSize)
-{
-  ll int hash = 7;
-  for (int i = 0; s[i] != '\0'; i++)
-  {
-    hash = (hash * 31 + s[i]) % arrSize;
-  }
-  return hash % arrSize;
-}
-
-// hash 4
-int h4(char *s, int arrSize)
-{
-  ll int hash = 3;
-  int p = 7;
-  for (int i = 0; s[i] != '\0'; i++)
-  {
-    hash += hash * 7 + s[0] * pow(p, i);
-    hash = hash % arrSize;
-  }
-  return hash;
+  free(filter->bitarray);
+  free(filter->hashFunctions);
+  free(filter);
 }
 
 // lookup operation
-_Bool lookup(_Bool *bitarray, int arrSize, char *s)
+_Bool lookup(struct BloomFilter *filter, char *s)
 {
-  int a = h1(s, arrSize);
-  int b = h2(s, arrSize);
-  int c = h3(s, arrSize);
-  int d = h4(s, arrSize);
-
-  if (bitarray[a] && bitarray[b] && bitarray && bitarray[c] && bitarray[d])
-    return true;
-  else
-    return false;
+  for (int i = 0; i < filter->numHashFunctions; i++)
+  {
+    int index = filter->hashFunctions[i](s, filter->arrSize);
+    if (!filter->bitarray[index])
+      return false;
+  }
+  return true;
 }
 
 // insert operation
-void insert(_Bool *bitarray, int arrSize, char *s)
+void insert(struct BloomFilter *filter, char *s)
 {
-  // check if the element in already present or not
-  if (lookup(bitarray, arrSize, s))
-    printf(" %s is Probably already present\n", s);
-  else
+  for (int i = 0; i < filter->numHashFunctions; i++)
   {
-    int a = h1(s, arrSize);
-    int b = h2(s, arrSize);
-    int c = h3(s, arrSize);
-    int d = h4(s, arrSize);
-
-    bitarray[a] = true;
-    bitarray[b] = true;
-    bitarray[c] = true;
-    bitarray[d] = true;
-    printf(" %s inserted\n", s);
+    int index = filter->hashFunctions[i](s, filter->arrSize);
+    filter->bitarray[index] = true;
   }
+}
+
+/*fnv1Hash*/
+unsigned int h1(char *str, int arrSize)
+{
+  unsigned int hash = 2166136261U;
+  for (int i = 0; str[i] != '\0'; i++)
+  {
+    hash = (hash * 16777619) ^ str[i];
+  }
+  return hash % arrSize;
+}
+/*fnv1aHash*/
+unsigned int h2(char *str, int arrSize)
+{
+  unsigned int hash = 2166136261U;
+  for (int i = 0; str[i] != '\0'; i++)
+  {
+    hash ^= str[i];
+    hash = (hash * 16777619);
+  }
+  return hash % arrSize;
+}
+
+/*djb2Hash*/
+unsigned int h3(char *str, int arrSize)
+{
+  unsigned int hash = 5381;
+  int c;
+  while ((c = *str++))
+  {
+    hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+  }
+  return hash % arrSize;
 }
